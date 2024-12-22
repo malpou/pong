@@ -2,6 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
+def move_ball(game_board, ball, bat_1, bat_2):
+    x = ball.x + ball.vx
+    y = ball.y + ball.vy
+    
+    if game_board.is_in_boudaries(ball.x, ball.y):
+        return x, y
+    else:
+        ball.vx = -ball.vx
+        x = ball.x + ball.vx
+        y = ball.y + ball.vy
+        return x, y
+
+
 def show_animation(game_board, ball, bat_1, bat_2):
     fig, ax = plt.subplots()
 
@@ -30,8 +43,7 @@ def show_animation(game_board, ball, bat_1, bat_2):
     # Update function for the animation
     def update(frame):
         # Generate random coordinates for the ball within the rectangle
-        ball.x += np.random.uniform(-game_board.x_max/10, game_board.x_max/10)
-        ball.y += np.random.uniform(-game_board.y_max/10, game_board.y_max/10)
+        ball.x, ball.y = move_ball(game_board, ball, bat_1, bat_2)
         
         # Update the ball position
         ball_scatter.set_data([ball.x], [ball.y])

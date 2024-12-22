@@ -9,11 +9,13 @@ class GameBoard:
                               (x_max,y_max)]
         
     def is_in_boudaries(self, x, y):
+        tol=self.x_max/1000
+
         if (
-            (x > self.x_max) or 
-            (x < 0) or
-            (y > self.y_max) or
-            (y < 0)
+            (x > self.x_max - tol) or 
+            (x < 0 + tol) or
+            (y > self.y_max - tol) or
+            (y < 0 + tol)
         ):
             return False
         return True
@@ -21,10 +23,11 @@ class GameBoard:
     
 class Ball():
 
-    def __init__(self, x_max, y_max):
+    def __init__(self, x_max, y_max, speed):
         self.x = x_max / 2
         self.y = y_max / 2
-        self.vector = (0,1)
+        self.vx = speed
+        self.vy = 0
 
 class Bat():
 

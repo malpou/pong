@@ -21,20 +21,38 @@ class GameBoard:
         return True
     
     
-class Ball():
+class Ball:
 
     def __init__(self, x_max, y_max, speed):
+        self.x_max = x_max
+        self.y_max = y_max
         self.x = x_max / 2
         self.y = y_max / 2
         self.vx = speed
         self.vy = 0
 
-class Bat():
+    def reset_ball_pos(self):
+        self.__init__(self.x_max, self.y_max, -self.vx )
+
+class Bat:
 
     def __init__(self, x_bat, y_bat, length):
         self.x = x_bat
         self.y = y_bat
         self.length = length
+        self.y_max = y_bat + length / 2
+        self.y_min = y_bat - length / 2
+
+    def bounces_on_bat(self, x, y):
+        tol=self.x/1000
+
+        if (
+            (x - self.x < tol) and
+            ((y < self.y_max + tol) or
+            (y > self.y_min - tol))
+        ):
+            return True
+        return False
 
 
     

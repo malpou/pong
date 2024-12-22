@@ -8,11 +8,18 @@ def move_ball(game_board, ball, bat_1, bat_2):
     
     if game_board.is_in_boudaries(ball.x, ball.y):
         return x, y
+    elif (
+            bat_1.bounces_on_bat(x, y) or
+            bat_2.bounces_on_bat(x, y) 
+        ):
+            ball.vx = -ball.vx
+            x =  + ball.vx
+            y = ball.y + ball.vy
+            return x, y
+    # the ball is not caught by the opponent
     else:
-        ball.vx = -ball.vx
-        x = ball.x + ball.vx
-        y = ball.y + ball.vy
-        return x, y
+         ball.reset_ball_pos()
+         return ball.x, ball.y
 
 
 def show_animation(game_board, ball, bat_1, bat_2):

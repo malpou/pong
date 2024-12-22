@@ -22,15 +22,15 @@ class GameBoard:
 class Ball():
 
     def __init__(self, x_max, y_max):
-        self.x_ball = x_max / 2
-        self.y_ball = y_max / 2
+        self.x = x_max / 2
+        self.y = y_max / 2
         self.vector = (0,1)
 
 class Bat():
 
     def __init__(self, x_bat, y_bat, length):
-        self.x_bat = x_bat
-        self.y_bat = y_bat
+        self.x = x_bat
+        self.y = y_bat
         self.length = length
 
 

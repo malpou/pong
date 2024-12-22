@@ -1,3 +1,4 @@
+from animation import show_animation
 from game_elements import *
 
 # input lengths of the game elements 
@@ -10,6 +11,9 @@ game_board = GameBoard(x_max, y_max)
 ball = Ball(x_max, y_max)
 bat_1 = Bat(0, y_max/2, length=length_bat)
 bat_2 = Bat(1, y_max/2, length=length_bat)
+
+# show the board
+show_animation(game_board, ball, bat_1, bat_2)
 
 
 

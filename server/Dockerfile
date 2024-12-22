@@ -1,18 +1,13 @@
-
-FROM python:3.12
-
+FROM python:3.13-slim
 
 WORKDIR /code
 
+RUN pip install --no-cache-dir poetry
+COPY pyproject.toml ./
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+RUN poetry lock --no-update && poetry install --only main --no-interaction --no-ansi
 
-COPY ./requirements.txt /code/requirements.txt
-
-
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
-
-
-COPY . /code
+COPY . .
 EXPOSE 80
 
-
-CMD ["fastapi", "run", "main.py", "--port", "80"]
+CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

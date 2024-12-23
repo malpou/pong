@@ -1,3 +1,5 @@
+import numpy as np
+
 from dataclasses import dataclass
 from dataclasses import field
 from domain.ball import Ball
@@ -7,13 +9,13 @@ from logger import logger
 @dataclass
 class GameState:
     POINTS_TO_WIN = 5  # Configurable win condition
-    LEFT_PADDLE_X = 0.1  # X position for left paddle collision
-    RIGHT_PADDLE_X = 0.9  # X position for right paddle collision
+    LEFT_PADDLE_X = 0.05  # X position for left paddle collision
+    RIGHT_PADDLE_X = 0.95  # X position for right paddle collision
     GAME_WIDTH = 1.0  # Normalized game width
     GAME_HEIGHT = 1.0  # Normalized game height
 
-    left_paddle: Paddle = field(default_factory=Paddle)
-    right_paddle: Paddle = field(default_factory=Paddle)
+    left_paddle: Paddle = field(default_factory=lambda: Paddle(GameState.LEFT_PADDLE_X))
+    right_paddle: Paddle = field(default_factory=lambda: Paddle(GameState.RIGHT_PADDLE_X))
     ball: Ball = field(default_factory=Ball)
     left_score: int = 0
     right_score: int = 0
@@ -39,16 +41,16 @@ class GameState:
             self._check_winner()
 
         # Basic paddle collision
-        if (self.ball.x <= self.LEFT_PADDLE_X and
-            self.left_paddle.y_position <= self.ball.y <= self.left_paddle.y_position + self.left_paddle.height):
-            self.ball.x = self.LEFT_PADDLE_X
-            self.ball.dx *= -1
+        if (self.left_paddle.is_on_paddle(self.ball)):
+            self.ball.x = self.left_paddle.x_position
+            self.ball.angle += 3 * np.pi / 4
 
-        if (self.ball.x >= self.RIGHT_PADDLE_X and
-            self.right_paddle.y_position <= self.ball.y <= self.right_paddle.y_position + self.right_paddle.height):
-            self.ball.x = self.RIGHT_PADDLE_X
-            self.ball.dx *= -1
+        if (self.right_paddle.is_on_paddle(self.ball)):
+            self.ball.x = self.right_paddle.x_position
+            self.ball.angle += 3 * np.pi / 4
 
+
+    
     def _check_winner(self) -> None:
         if self.left_score >= self.POINTS_TO_WIN:
             self.winner = "left"

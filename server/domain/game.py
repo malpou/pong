@@ -27,12 +27,12 @@ class GameState:
         self.ball.update_position()
 
         # Scoring
-        if self.ball.x <= 0.0:
+        if self.ball.x <= 0:
             self.right_score += 1
             logger.info(f"Room {self.room_id}: Current score - Left: {self.left_score}, Right: {self.right_score} - RIGHT SCORED!")
             self.ball.reset()
             self.check_winner()
-        elif self.ball.x >= 1.0:
+        elif self.ball.x >= self.GAME_WIDTH:
             self.left_score += 1
             logger.info(f"Room {self.room_id}: Current score - Left: {self.left_score}, Right: {self.right_score} - LEFT SCORED!")
             self.ball.reset()

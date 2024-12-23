@@ -50,6 +50,50 @@ The game uses a binary WebSocket protocol for efficient real-time communication 
 - `PAUSED`: Game paused due to player disconnection
 - `GAME_OVER`: Game ended with a winner (first to 5 points)
 
+
+### Game Specifications
+The server provides game specifications needed to set up the playing field through a REST endpoint.
+
+#### Endpoint
+`GET /specs`
+
+#### Response Format
+```json
+{
+  "ball": {
+    "radius": 0.02,      // Ball radius as percentage of screen width
+    "initial": {
+      "x": 0.5,         // Initial X position (0-1)
+      "y": 0.5          // Initial Y position (0-1)
+    }
+  },
+  "paddle": {
+    "height": 0.2,      // Paddle height as percentage of screen height
+    "initial": {
+      "y": 0.5         // Initial Y position (0-1)
+    },
+    "collision_bounds": {
+      "left": 0.1,     // X position for left paddle collision
+      "right": 0.9     // X position for right paddle collision
+    }
+  },
+  "game": {
+    "points_to_win": 5, // Points needed to win the game
+    "bounds": {
+      "width": 1.0,    // Game field width (normalized)
+      "height": 1.0    // Game field height (normalized)
+    }
+  }
+}
+```
+
+All dimensions are normalized (0-1) so clients can scale them to their actual screen dimensions. These specifications should be retrieved before connecting to the WebSocket to properly set up the game field.
+
+The specifications provide:
+- Ball dimensions and initial position
+- Paddle dimensions, initial position, and collision boundaries
+- Game field dimensions and win condition
+
 ### Binary Message Format
 
 #### Client to Server Messages

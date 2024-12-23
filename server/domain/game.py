@@ -26,30 +26,30 @@ class GameState:
 
         self.ball.update_position()
 
-        # Scoring
+        # Check for scoring
         if self.ball.x <= 0:
             self.right_score += 1
             logger.info(f"Room {self.room_id}: Current score - Left: {self.left_score}, Right: {self.right_score} - RIGHT SCORED!")
             self.ball.reset()
-            self.check_winner()
+            self._check_winner()
         elif self.ball.x >= self.GAME_WIDTH:
             self.left_score += 1
             logger.info(f"Room {self.room_id}: Current score - Left: {self.left_score}, Right: {self.right_score} - LEFT SCORED!")
             self.ball.reset()
-            self.check_winner()
+            self._check_winner()
 
-        # Simple paddle collisions
+        # Basic paddle collision
         if (self.ball.x <= self.LEFT_PADDLE_X and
             self.left_paddle.y_position <= self.ball.y <= self.left_paddle.y_position + self.left_paddle.height):
             self.ball.x = self.LEFT_PADDLE_X
-            self.ball.dx *= -1.0
+            self.ball.dx *= -1
 
         if (self.ball.x >= self.RIGHT_PADDLE_X and
             self.right_paddle.y_position <= self.ball.y <= self.right_paddle.y_position + self.right_paddle.height):
             self.ball.x = self.RIGHT_PADDLE_X
-            self.ball.dx *= -1.0
+            self.ball.dx *= -1
 
-    def check_winner(self) -> None:
+    def _check_winner(self) -> None:
         if self.left_score >= self.POINTS_TO_WIN:
             self.winner = "left"
             logger.info(f"Room {self.room_id}: Game won by LEFT player with score {self.left_score}-{self.right_score}")

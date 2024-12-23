@@ -1,14 +1,26 @@
 name: Server Integration Test
-
 on:
   pull_request:
     paths:
       - 'server/**'
-
 jobs:
   integration-test:
     runs-on: ubuntu-latest
-    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pong
+          POSTGRES_PASSWORD: pong
+          POSTGRES_DB: pong
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
       
@@ -19,15 +31,20 @@ jobs:
           
       - name: Install websockets
         run: pip install websockets
-          
+        
       - name: Build Docker image
         run: |
           cd server
           docker build -t pong-server .
           
       - name: Start server container
+        env:
+          DATABASE_URL: postgresql://pong:pong@localhost:5432/pong
         run: |
-          docker run -d --name pong-server -p 8000:80 pong-server
+          docker run -d --name pong-server \
+            --network host \
+            -e DATABASE_URL=$DATABASE_URL \
+            pong-server
           # Wait for server to be ready
           timeout 30 bash -c 'while ! curl -s http://localhost:8000/health; do sleep 1; done'
           
@@ -35,7 +52,6 @@ jobs:
         run: |
           cd server/tests
           python integration.py
-          # Check exit code - Python will exit with non-zero if any assertion fails
           if [ $? -ne 0 ]; then
             echo "Integration tests failed"
             exit 1

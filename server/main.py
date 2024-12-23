@@ -1,9 +1,7 @@
 import asyncio
 import struct
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-
 from logger import logger
 from networking.binary_protocol import decode_command, CommandType
 from networking.room_manager import RoomManager, RoomState

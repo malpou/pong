@@ -113,7 +113,6 @@ class GameRoom:
             try:
                 await player.send_bytes(state_bytes)
             except (WebSocketDisconnect, RuntimeError) as e:
-                logger.error(f"Error broadcasting state to player: {e}")
                 disconnected_players.add(player)
 
         # Handle any disconnections

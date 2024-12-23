@@ -1,10 +1,10 @@
 import asyncio
-import websockets
-import struct
 import random
+import struct
 import time
 from dataclasses import dataclass
 from typing import Optional
+import websockets
 
 
 @dataclass
@@ -102,10 +102,6 @@ class PongClient:
 
                         if status.startswith("game_over"):
                             self.running = False
-
-                # Print game state occasionally
-                if self.game_state and random.random() < 0.01:
-                    print(f"Room {self.room_id} - Score: {self.game_state.score_left} - {self.game_state.score_right}")
 
                 await asyncio.sleep(0.016)  # ~60fps
 

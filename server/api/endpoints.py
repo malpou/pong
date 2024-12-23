@@ -39,3 +39,11 @@ def get_game_specs() -> Dict:
             }
         }
     }
+
+@endpoints.get("/health")
+def health_check() -> Dict:
+    """Health check endpoint to verify the server is running."""
+    return {
+        "status": "healthy",
+        "service": "pong-server"
+    }

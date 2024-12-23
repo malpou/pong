@@ -1,0 +1,62 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          
+      - name: Generate UUID for Docker tag
+        id: uuid
+        run: echo "UUID=$(uuidgen)" >> $GITHUB_ENV
+        
+      - name: Build and push Docker image
+        run: |
+          cd server
+          docker build -t ttl.sh/${{ env.UUID }}:2h .
+          docker push ttl.sh/${{ env.UUID }}:2h
+          
+      - name: Start server container
+        run: |
+          docker run -d --name pong-server -p 8000:8000 ttl.sh/${{ env.UUID }}:2h
+          # Wait for server to be ready
+          timeout 30 bash -c 'while ! curl -s http://localhost:8000/health; do sleep 1; done'
+          
+      - name: Install test dependencies
+        run: |
+          cd server
+          # Install project dependencies
+          poetry install
+          # Ensure websockets is installed for testing
+          poetry run pip install websockets
+          
+      - name: Run integration tests
+        run: |
+          cd server/tests
+          poetry run python integration.py
+          # Check exit code - Python will exit with non-zero if any assertion fails
+          if [ $? -ne 0 ]; then
+            echo "Integration tests failed"
+            exit 1
+          fi
+          
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop pong-server || true
+          docker rm pong-server || true

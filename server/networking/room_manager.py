@@ -38,6 +38,7 @@ class GameRoom:
         if len(self.players) == 2:
             self.state = RoomState.PLAYING
             self.game_state = GameState()
+            self.game_state.room_id = self.room_id
             logger.info(f"Room {self.room_id}: Game starting with 2 players")
             await self.broadcast_game_status("game_starting")
         else:
@@ -112,7 +113,7 @@ class GameRoom:
         for player in list(self.players):
             try:
                 await player.send_bytes(state_bytes)
-            except (WebSocketDisconnect, RuntimeError) as e:
+            except (WebSocketDisconnect, RuntimeError):
                 disconnected_players.add(player)
 
         # Handle any disconnections

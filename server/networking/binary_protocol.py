@@ -43,7 +43,9 @@ def encode_game_state(ball_x: float, ball_y: float,
     elif winner == "right":
         winner_code = 2
 
-    return pack('!BffffBBB',
+    # BUG: Using '<' (little-endian) for ball_y instead of '!' (network/big-endian)
+    # This will cause the ball's Y position to be incorrectly decoded
+    return pack('!Bf<fffBBB',  # Changed '!BffffBBB' to '!Bf<fffBBB'
                 MessageType.GAME_STATE,
                 ball_x, ball_y,
                 left_paddle_y, right_paddle_y,

@@ -17,9 +17,8 @@ jobs:
         with:
           python-version: '3.13'
           
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
+      - name: Install websockets
+        run: pip install websockets
           
       - name: Generate UUID for Docker tag
         id: uuid
@@ -28,8 +27,8 @@ jobs:
       - name: Build and push Docker image
         run: |
           cd server
-          docker build -t ttl.sh/${{ env.UUID }}:2h .
-          docker push ttl.sh/${{ env.UUID }}:2h
+          docker build -t ttl.sh/${{ env.UUID }}:1h .
+          docker push ttl.sh/${{ env.UUID }}:1h
           
       - name: Start server container
         run: |
@@ -37,18 +36,10 @@ jobs:
           # Wait for server to be ready
           timeout 30 bash -c 'while ! curl -s http://localhost:8000/health; do sleep 1; done'
           
-      - name: Install test dependencies
-        run: |
-          cd server
-          # Install project dependencies
-          poetry install
-          # Ensure websockets is installed for testing
-          poetry run pip install websockets
-          
       - name: Run integration tests
         run: |
           cd server/tests
-          poetry run python integration.py
+          python integration.py
           # Check exit code - Python will exit with non-zero if any assertion fails
           if [ $? -ne 0 ]; then
             echo "Integration tests failed"

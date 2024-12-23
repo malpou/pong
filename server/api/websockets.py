@@ -5,10 +5,10 @@ from networking.binary_protocol import decode_command, CommandType
 from networking.room_manager import RoomState
 
 
-async def handle_game_connection(websocket: WebSocket, room_id: str, room_manager):
+async def handle_game_connection(websocket: WebSocket, room_id: str, room_manager, player_name: str = "Anonymous"):
     """Handle WebSocket connection for a game room."""
     room = room_manager.create_room(room_id)
-    player_role = await room.connect(websocket)
+    player_role = await room.connect(websocket, player_name)
 
     if not player_role:
         await websocket.close(code=1000, reason="Room is full")

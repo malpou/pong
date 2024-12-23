@@ -20,10 +20,11 @@ class GameRoom:
         self.game_state = GameState()
         self.players: Set[WebSocket] = set()
         self.player_roles: Dict[WebSocket, str] = {}
+        self.player_names: Dict[WebSocket, str] = {}
         self.state = RoomState.WAITING
         self.room_id: Optional[str] = None
 
-    async def connect(self, websocket: WebSocket) -> Optional[str]:
+    async def connect(self, websocket: WebSocket, player_name: str) -> Optional[str]:
         if len(self.players) >= 2:
             logger.warning(f"Room {self.room_id}: Connection rejected - room is full")
             return None
@@ -32,7 +33,8 @@ class GameRoom:
         self.players.add(websocket)
         role = 'left' if len(self.players) == 1 else 'right'
         self.player_roles[websocket] = role
-        logger.info(f"Room {self.room_id}: Player connected as {role} ({len(self.players)}/2 players)")
+        self.player_names[websocket] = player_name
+        logger.info(f"Room {self.room_id}: Player {player_name} connected as {role} ({len(self.players)}/2 players)")
 
         # If we now have 2 players, start the game
         if len(self.players) == 2:
@@ -49,7 +51,14 @@ class GameRoom:
 
     async def broadcast_game_status(self, status: str) -> None:
         logger.debug(f"Room {self.room_id}: Broadcasting status - {status}")
-        status_bytes = encode_game_status(status)
+        
+        # Create a mapping of roles to player names
+        player_names = {}
+        for ws, role in self.player_roles.items():
+            if ws in self.player_names:
+                player_names[role] = self.player_names[ws]
+        
+        status_bytes = encode_game_status(status, player_names)
         disconnected_players = set()
 
         for player in self.players:
@@ -66,9 +75,12 @@ class GameRoom:
     def disconnect(self, websocket: WebSocket) -> None:
         if websocket in self.players:
             role = self.player_roles[websocket]
+            name = self.player_names.get(websocket, "Unknown")
             self.players.remove(websocket)
             del self.player_roles[websocket]
-            logger.info(f"Room {self.room_id}: {role} player disconnected ({len(self.players)}/2 players)")
+            if websocket in self.player_names:
+                del self.player_names[websocket]
+            logger.info(f"Room {self.room_id}: Player {name} ({role}) disconnected ({len(self.players)}/2 players)")
 
             # If we now have less than 2 players, pause the game
             if len(self.players) < 2 and self.state == RoomState.PLAYING:

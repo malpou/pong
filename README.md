@@ -38,7 +38,8 @@ The server is implemented in Python using FastAPI as the web framework and Postg
 The game uses a binary WebSocket protocol for efficient real-time communication between client and server.
 
 ### Connection Setup
-1. Client connects to WebSocket endpoint: `ws://<server>/game/<room_id>`
+1. Client connects to WebSocket endpoint: `ws://<server>/game/<room_id>?player_name=<name>`
+   - `player_name` is optional and defaults to "Anonymous"
 2. Server assigns player role ("left" or "right") upon successful connection
 3. Connection is rejected if room is full (2 players already connected)
 4. Game starts automatically when second player joins
@@ -49,7 +50,6 @@ The game uses a binary WebSocket protocol for efficient real-time communication 
 - `PLAYING`: Active game with 2 players
 - `PAUSED`: Game paused due to player disconnection
 - `GAME_OVER`: Game ended with a winner (first to 5 points)
-
 
 ### Game Specifications
 The server provides game specifications needed to set up the playing field through a REST endpoint.
@@ -140,16 +140,25 @@ Field Types:
   - 2: Right player won
 
 ##### Game Status Message
-Variable size message
+Variable size message containing JSON-encoded status data
 ```
-[Message Type][Length][Status String]
+[Message Type][Length][Status Data]
    1 byte     1 byte    variable
 ```
 
 Field Types:
 - Message Type: uint8 (1 byte)
-- Length: uint8 (1 byte) - length of status string
-- Status String: UTF-8 encoded string (variable length)
+- Length: uint8 (1 byte) - length of status data
+- Status Data: UTF-8 encoded JSON string containing:
+  ```json
+  {
+    "status": "<status_string>",
+    "players": {
+      "left": "<player_name>",
+      "right": "<player_name>"
+    }
+  }
+  ```
 
 Status String Values:
 - "waiting_for_players": Waiting for more players to join
@@ -176,11 +185,19 @@ interface GameState {
     winner: 'left' | 'right' | null;
 }
 
+interface GameStatus {
+    status: string;
+    players: {
+        left?: string;
+        right?: string;
+    };
+}
+
 class PongClient {
     private ws: WebSocket;
 
-    constructor(server: string, roomId: string) {
-        this.ws = new WebSocket(`ws://${server}/game/${roomId}`);
+    constructor(server: string, roomId: string, playerName: string = "Anonymous") {
+        this.ws = new WebSocket(`ws://${server}/game/${roomId}?player_name=${encodeURIComponent(playerName)}`);
         this.ws.binaryType = 'arraybuffer';
         this.setupHandlers();
     }
@@ -230,7 +247,8 @@ class PongClient {
     private handleGameStatus(data: DataView) {
         const length = data.getUint8(1);
         const decoder = new TextDecoder();
-        const status = decoder.decode(new Uint8Array(data.buffer, 2, length));
+        const statusJson = decoder.decode(new Uint8Array(data.buffer, 2, length));
+        const status: GameStatus = JSON.parse(statusJson);
         this.updateGameStatus(status);
     }
 
@@ -248,8 +266,8 @@ class PongClient {
         // Update game rendering with new state
     }
 
-    private updateGameStatus(status: string) {
-        // Update UI based on game status
+    private updateGameStatus(status: GameStatus) {
+        // Update UI based on game status and player names
     }
 }
 ```

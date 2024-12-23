@@ -16,15 +16,22 @@ def decode_command(data: bytes) -> CommandType:
     return CommandType(command_value)
 
 
-def encode_game_status(status: str) -> bytes:
+def encode_game_status(status: str, player_names: dict[str, str] | None = None) -> bytes:
     """Encode game status messages.
     Status can be:
     - "waiting_for_players"
     - "game_starting"
     - "game_paused"
     - "game_over"
+
+    player_names is a dict mapping 'left' and 'right' to player names
     """
-    status_bytes = status.encode('utf-8')
+    # Convert player names to JSON string if provided
+    status_data = {
+        'status': status,
+        'players': player_names if player_names else {}
+    }
+    status_bytes = str(status_data).encode('utf-8')
     return pack(f'!BB{len(status_bytes)}s',
                MessageType.GAME_STATUS,
                len(status_bytes),

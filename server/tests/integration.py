@@ -28,7 +28,7 @@ class PongClient:
         self.completed = False
 
     async def connect(self):
-        uri = f"ws://localhost:80/game/{self.room_id}"
+        uri = f"ws://localhost:8000/game/{self.room_id}"
         try:
             self.ws = await websockets.connect(uri)
             print(f"Connected to room {self.room_id} as {self.player}")

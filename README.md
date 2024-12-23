@@ -1,4 +1,4 @@
-# Pong
+# Ping Pong
 Online multiplayer implementation of the classic Pong game, coded during Christmas 2024.
 
 ## Hosting
@@ -35,49 +35,108 @@ The server is implemented in Python using FastAPI as the web framework and Postg
 4. Run `uvicorn main:app --reload`
 
 ## Network Protocol
-
 The game uses a binary WebSocket protocol for efficient real-time communication between client and server.
 
 ### Connection Setup
-1. Client connects to WebSocket endpoint: `ws://<server>/ws/<room_id>`
+1. Client connects to WebSocket endpoint: `ws://<server>/game/<room_id>`
 2. Server assigns player role ("left" or "right") upon successful connection
 3. Connection is rejected if room is full (2 players already connected)
+4. Game starts automatically when second player joins
+5. Game pauses if a player disconnects and resumes when they reconnect
+
+### Game States
+- `WAITING`: Room has less than 2 players, waiting for more
+- `PLAYING`: Active game with 2 players
+- `PAUSED`: Game paused due to player disconnection
+- `GAME_OVER`: Game ended with a winner (first to 5 points)
 
 ### Binary Message Format
 
-#### Client to Server: Commands
+#### Client to Server Messages
+##### Command Message
 Size: 1 byte
-
 ```
-[Command Type]
+[Message Type]
    1 byte
 ```
 
-Command Types:
-- `0x01`: Paddle Up
-- `0x02`: Paddle Down
+Message Types:
+- `0x01`: Paddle Up Command
+- `0x02`: Paddle Down Command
 
-#### Server to Client: Game State
-Size: 18 bytes
-
+#### Server to Client Messages
+Each server message begins with a message type indicator:
 ```
-[Ball X][Ball Y][Left Paddle Y][Right Paddle Y][Left Score][Right Score]
- 4 bytes 4 bytes    4 bytes      4 bytes        1 byte      1 byte
+[Message Type]
+   1 byte
 ```
 
-Data Types:
-- Ball positions (X, Y): 32-bit float, network byte order (big-endian)
-- Paddle positions (Y): 32-bit float, network byte order (big-endian)
-- Scores: 8-bit unsigned integer
+Message Types:
+- `0x01`: Game State Message
+- `0x02`: Game Status Message
+
+##### Game State Message
+Size: 20 bytes total
+```
+[Message Type][Ball X][Ball Y][Left Paddle Y][Right Paddle Y][Left Score][Right Score][Winner]
+   1 byte     4 bytes 4 bytes    4 bytes       4 bytes      1 byte      1 byte     1 byte
+```
+
+Field Types:
+- Message Type: uint8 (1 byte)
+- Ball X Position: float32, big-endian (4 bytes)
+- Ball Y Position: float32, big-endian (4 bytes)
+- Left Paddle Y Position: float32, big-endian (4 bytes)
+- Right Paddle Y Position: float32, big-endian (4 bytes)
+- Left Score: uint8 (1 byte)
+- Right Score: uint8 (1 byte)
+- Winner: uint8 (1 byte)
+  - 0: No winner
+  - 1: Left player won
+  - 2: Right player won
+
+##### Game Status Message
+Variable size message
+```
+[Message Type][Length][Status String]
+   1 byte     1 byte    variable
+```
+
+Field Types:
+- Message Type: uint8 (1 byte)
+- Length: uint8 (1 byte) - length of status string
+- Status String: UTF-8 encoded string (variable length)
+
+Status String Values:
+- "waiting_for_players": Waiting for more players to join
+- "game_starting": Both players present, game is starting
+- "game_paused": Game paused due to player disconnect
+- "game_over_left": Left player won
+- "game_over_right": Right player won
 
 ### Example Client Implementation (TypeScript)
-
 ```typescript
+interface GameState {
+    ball: {
+        x: number;
+        y: number;
+    };
+    paddles: {
+        left: number;
+        right: number;
+    };
+    score: {
+        left: number;
+        right: number;
+    };
+    winner: 'left' | 'right' | null;
+}
+
 class PongClient {
     private ws: WebSocket;
 
-    constructor(roomId: string) {
-        this.ws = new WebSocket(`ws://localhost:8000/ws/${roomId}`);
+    constructor(server: string, roomId: string) {
+        this.ws = new WebSocket(`ws://${server}/game/${roomId}`);
         this.ws.binaryType = 'arraybuffer';
         this.setupHandlers();
     }
@@ -85,22 +144,50 @@ class PongClient {
     private setupHandlers() {
         this.ws.onmessage = (event) => {
             const data = new DataView(event.data);
-            const gameState = {
-                ball: {
-                    x: data.getFloat32(0),
-                    y: data.getFloat32(4)
-                },
-                paddles: {
-                    left: data.getFloat32(8),
-                    right: data.getFloat32(12)
-                },
-                score: {
-                    left: data.getUint8(16),
-                    right: data.getUint8(17)
-                }
-            };
-            this.updateGame(gameState);
+            const messageType = data.getUint8(0);
+
+            switch (messageType) {
+                case 0x01: // Game State
+                    this.handleGameState(data);
+                    break;
+                case 0x02: // Game Status
+                    this.handleGameStatus(data);
+                    break;
+            }
         };
+    }
+
+    private handleGameState(data: DataView) {
+        const gameState = {
+            ball: {
+                x: data.getFloat32(1),
+                y: data.getFloat32(5)
+            },
+            paddles: {
+                left: data.getFloat32(9),
+                right: data.getFloat32(13)
+            },
+            score: {
+                left: data.getUint8(17),
+                right: data.getUint8(18)
+            },
+            winner: (() => {
+                const winnerCode = data.getUint8(19);
+                switch (winnerCode) {
+                    case 1: return 'left';
+                    case 2: return 'right';
+                    default: return null;
+                }
+            })()
+        };
+        this.updateGame(gameState);
+    }
+
+    private handleGameStatus(data: DataView) {
+        const length = data.getUint8(1);
+        const decoder = new TextDecoder();
+        const status = decoder.decode(new Uint8Array(data.buffer, 2, length));
+        this.updateGameStatus(status);
     }
 
     public sendPaddleUp() {
@@ -116,9 +203,15 @@ class PongClient {
     private updateGame(gameState: GameState) {
         // Update game rendering with new state
     }
+
+    private updateGameStatus(status: string) {
+        // Update UI based on game status
+    }
 }
 ```
 
 ### Example Server Implementation (Python)
-
-See the `binary_protocol.py` module for the server-side protocol implementation.
+See the following modules for the server-side implementation:
+- `binary_protocol.py`: Protocol encoding/decoding
+- `room_manager.py`: Game room and player management
+- `main.py`: WebSocket endpoint and game loop

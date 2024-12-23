@@ -1,35 +1,53 @@
 import asyncio
 import struct
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+
+from logger import logger
 from networking.binary_protocol import decode_command, CommandType
 from networking.room_manager import RoomManager, RoomState
-from logger import logger
+
+shutdown_event = asyncio.Event()
+
 
 async def game_loop():
-    while True:
+    while not shutdown_event.is_set():
         try:
             for room in list(room_manager.rooms.values()):
                 if room.players:
                     try:
                         room.game_state.update()
-                        await room.broadcast_state()
+                        if not shutdown_event.is_set():  # Check again before broadcast
+                            await room.broadcast_state()
                     except RuntimeError:
                         continue
         except Exception as e:
             logger.error(f"Error in game loop: {e}")
         await asyncio.sleep(1 / 60)  # 60 FPS
 
-
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     game_loop_task = asyncio.create_task(game_loop())
     yield
+    logger.info("Application shutting down...")
+    shutdown_event.set()
+
+    for room_id in list(room_manager.rooms.keys()):
+        room = room_manager.rooms[room_id]
+        for player in list(room.players):
+            try:
+                await player.close(code=1000, reason="Server shutting down")
+            except Exception as e:
+                logger.error(f"Error closing WebSocket connection in room {room_id}: {e}")
+        room_manager.remove_room(room_id)
+
     game_loop_task.cancel()
     try:
         await game_loop_task
     except asyncio.CancelledError:
         pass
+    logger.info("Shutdown complete")
 
 
 app = FastAPI(lifespan=lifespan)

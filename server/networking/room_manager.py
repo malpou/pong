@@ -109,12 +109,12 @@ class GameRoom:
         )
 
         disconnected_players = set()
-        for player in self.players:
+        for player in list(self.players):
             try:
                 await player.send_bytes(state_bytes)
-            except WebSocketDisconnect:
+            except (WebSocketDisconnect, RuntimeError) as e:
+                logger.error(f"Error broadcasting state to player: {e}")
                 disconnected_players.add(player)
-                logger.warning(f"Room {self.room_id}: Player disconnected during state broadcast")
 
         # Handle any disconnections
         for player in disconnected_players:

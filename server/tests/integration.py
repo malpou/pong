@@ -187,7 +187,7 @@ async def run_game(room_id: str, results: TestResults):
 async def progress_monitor(results: TestResults):
     while results.completed_games + results.failed_games < 100:
         await asyncio.sleep(2.5)
-        print(f"Progress: {results.completed_games + results.failed_games}/100 games processed.")
+        print(f"Progress: {results.completed_games + results.failed_games}/100 games processed.", flush=True)
 
 async def main():
     print("Starting Pong server load test with 100 simultaneous games...")

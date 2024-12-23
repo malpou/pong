@@ -4,7 +4,7 @@ from game_elements import *
 # input lengths of the game elements 
 x_max = 1
 y_max = 1
-ball_speed = x_max / 3 # units per second
+ball_speed = x_max / 2 # units per second
 ball_angle = 0
 length_paddle = 0.2
 

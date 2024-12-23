@@ -1,0 +1,48 @@
+name: Server Integration Test
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          
+      - name: Install websockets
+        run: pip install websockets
+          
+      - name: Build Docker image
+        run: |
+          cd server
+          docker build -t pong-server .
+          
+      - name: Start server container
+        run: |
+          docker run -d --name pong-server -p 8000:80 pong-server
+          # Wait for server to be ready
+          timeout 30 bash -c 'while ! curl -s http://localhost:8000/health; do sleep 1; done'
+          
+      - name: Run integration tests
+        run: |
+          cd server/tests
+          python integration.py
+          # Check exit code - Python will exit with non-zero if any assertion fails
+          if [ $? -ne 0 ]; then
+            echo "Integration tests failed"
+            exit 1
+          fi
+          
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop pong-server || true
+          docker rm pong-server || true

@@ -11,7 +11,7 @@ def move_ball(game_board, ball, paddle_left, paddle_right, dt):
     if game_board.is_in_boudaries(x, y):
         return x, y, ball.angle
     
-    # reaches the paddles
+    # bounces on the paddles
     elif (
         paddle_left.is_on_paddle(x, y) or 
         paddle_right.is_on_paddle(x, y)
@@ -20,6 +20,7 @@ def move_ball(game_board, ball, paddle_left, paddle_right, dt):
         x, y = calc_pos(ball, dt)
         return x, y, ball.angle
     
+    # bounces on a horizontal wall
     elif (game_board.is_on_horizontal_wall(x,y)):
         print(f"Collision with horizontal wall. Angle before flip: {ball.angle}")
         ball.angle = -ball.angle
@@ -46,16 +47,6 @@ def calc_pos(ball, dt):
     y = ball.y + v_y * dt
 
     return x, y
-
-def normalize_angle(angle):
-    # Normalize the angle to the range [0, 2π]
-    angle = angle % (2 * np.pi)
-    
-    # Adjust the angle to the range [-π, π]
-    if angle > np.pi:
-        angle -= 2 * np.pi
-    
-    return angle
 
 def show_animation(game_board, ball, paddle_left, paddle_right, dt):
     fig, ax = plt.subplots()

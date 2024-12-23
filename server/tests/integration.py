@@ -31,7 +31,6 @@ class PongClient:
         uri = f"ws://localhost:8000/game/{self.room_id}"
         try:
             self.ws = await websockets.connect(uri)
-            print(f"Connected to room {self.room_id} as {self.player}")
         except websockets.exceptions.WebSocketException as ws_err:
             print(f"WebSocket error connecting to room {self.room_id} as {self.player}: {str(ws_err)}")
             raise
@@ -101,7 +100,6 @@ class PongClient:
 
                 elif message_type == 0x02:  # Game Status
                     status = self.parse_game_status(data)
-                    print(f"Room {self.room_id} status: {status}")
 
                     status_str = str(status)
                     if "game_over" in status_str:
@@ -186,12 +184,10 @@ async def run_game(room_id: str, results: TestResults):
         results.add_result(room_id, False, f"Unexpected error: {str(game_err)}")
 
 
-async def progress_monitor(results: TestResults, duration: float):
+async def progress_monitor(results: TestResults):
     while results.completed_games + results.failed_games < 100:
         await asyncio.sleep(2.5)
-        print(f"Progress: {results.completed_games + results.failed_games}/100 games processed. "
-              f"Completed: {results.completed_games}, Failed: {results.failed_games}, "
-              f"Time Elapsed: {duration:.2f} seconds")
+        print(f"Progress: {results.completed_games + results.failed_games}/100 games processed.")
 
 async def main():
     print("Starting Pong server load test with 100 simultaneous games...")
@@ -202,7 +198,7 @@ async def main():
     games = [run_game(str(i), results) for i in range(1, 101)]
     
     # Add a progress monitor
-    monitor_task = asyncio.create_task(progress_monitor(results, time.time() - start_time))
+    monitor_task = asyncio.create_task(progress_monitor(results))
     
     # Wait for all games to complete
     await asyncio.gather(*games)
@@ -217,11 +213,6 @@ async def main():
     print(f"Completed Games: {results.completed_games}")
     print(f"Failed Games: {results.failed_games}")
     print(f"Timed Out Games: {results.timed_out_games}")
-
-    if results.errors:
-        print("\nErrors encountered:")
-        for room_id, error in results.errors.items():
-            print(f"Room {room_id}: {error}")
 
     # Exit with error if any games failed
     if results.failed_games > 0:

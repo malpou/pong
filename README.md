@@ -1,4 +1,4 @@
-# Pong
+# Ping Pong
 Online multiplayer implementation of the classic Pong game, coded during Christmas 2024.
 
 ## Hosting

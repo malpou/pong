@@ -1,24 +1,35 @@
+import numpy as np
+
 class GameBoard:
 
-    def __init__(self, x_max, y_max):
+    def __init__(self, x_max, y_max, tol):
         self.x_max = x_max
         self.y_max = y_max
+        self.tol = tol
         self.board_corners = [(0,0),
                               (x_max,0),
                               (0,y_max),
                               (x_max,y_max)]
         
-    def is_in_boudaries(self, x, y):
-        tol=self.x_max/1000
+    def is_in_boudaries(self, x_obj, y_obj):
 
         if (
-            (x > self.x_max - tol) or 
-            (x < 0 + tol) or
-            (y > self.y_max - tol) or
-            (y < 0 + tol)
+            (x_obj > self.x_max - self.tol) or 
+            (x_obj < 0 + self.tol) or
+            (y_obj > self.y_max - self.tol) or
+            (y_obj < 0 + self.tol)
         ):
             return False
         return True
+    
+    def is_on_horizontal_wall(self, x_obj, y_obj):
+
+        if (
+            ((x_obj > self.tol) and (x_obj - self.x_max < self.tol)) and
+            ((self.y_max - y_obj < self.tol) or (y_obj < self.tol))
+        ):
+            return True
+        return False
     
     
 class Ball:
@@ -30,29 +41,34 @@ class Ball:
         self.y = y_max / 2
         self.vx = speed
         self.vy = 0
+        self.angle = np.arctan2(self.vy, self.vx)
+
 
     def reset_ball_pos(self):
         self.__init__(self.x_max, self.y_max, -self.vx )
 
-class Bat:
+class Paddle:
 
-    def __init__(self, x_bat, y_bat, length):
-        self.x = x_bat
-        self.y = y_bat
+    def __init__(self, x_paddle, y_paddle, length, tol):
+        self.x = x_paddle
+        self.y = y_paddle
         self.length = length
-        self.y_max = y_bat + length / 2
-        self.y_min = y_bat - length / 2
+        self.tol = tol
+        self.y_max = y_paddle + length / 2
+        self.y_min = y_paddle - length / 2
 
-    def bounces_on_bat(self, x, y):
-        tol=self.x/1000
+    def is_on_paddle(self, x_obj, y_obj):
 
         if (
-            (x - self.x < tol) and
-            ((y < self.y_max + tol) or
-            (y > self.y_min - tol))
+            (x_obj - self.x < self.tol) and
+            ((y_obj - self.y_max < self.tol) or
+            (y_obj - self.y_min < self.tol))
         ):
             return True
         return False
+    
+    # def reset_paddle_pos():
+        ## to do
 
 
     

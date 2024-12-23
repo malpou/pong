@@ -186,6 +186,13 @@ async def run_game(room_id: str, results: TestResults):
         results.add_result(room_id, False, f"Unexpected error: {str(game_err)}")
 
 
+async def progress_monitor(results: TestResults, duration: float):
+    while results.completed_games + results.failed_games < 100:
+        await asyncio.sleep(2.5)
+        print(f"Progress: {results.completed_games + results.failed_games}/100 games processed. "
+              f"Completed: {results.completed_games}, Failed: {results.failed_games}, "
+              f"Time Elapsed: {duration:.2f} seconds")
+
 async def main():
     print("Starting Pong server load test with 100 simultaneous games...")
     start_time = time.time()
@@ -193,7 +200,15 @@ async def main():
 
     # Create and run games
     games = [run_game(str(i), results) for i in range(1, 101)]
+    
+    # Add a progress monitor
+    monitor_task = asyncio.create_task(progress_monitor(results, time.time() - start_time))
+    
+    # Wait for all games to complete
     await asyncio.gather(*games)
+    
+    # Cancel the monitor task
+    monitor_task.cancel()
 
     # Print results
     end_time = time.time()

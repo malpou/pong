@@ -23,11 +23,12 @@ class GameBoard:
         return True
     
     def is_on_horizontal_wall(self, x_obj, y_obj):
-
-        if (
-            ((x_obj > self.tol) and (x_obj - self.x_max < self.tol)) and
-            ((self.y_max - y_obj < self.tol) or (y_obj < self.tol))
-        ):
+        # Check if the ball is near the top or bottom horizontal edge
+        near_top_wall = (y_obj <= self.tol)
+        near_bottom_wall = (y_obj >= self.y_max - self.tol)
+        
+        # Check if the ball is within the horizontal bounds (left and right sides of the board)
+        if (near_top_wall or near_bottom_wall) and (self.tol <= x_obj <= self.x_max - self.tol):
             return True
         return False
     
@@ -60,13 +61,11 @@ class Paddle:
         self.y_min = y_paddle - length / 2
 
     def is_on_paddle(self, x_obj, y_obj):
-
-        if (
-            (x_obj - self.x < self.tol) and
-            ((y_obj - self.y_max < self.tol) or
-            (y_obj - self.y_min < self.tol))
-        ):
-            return True
+        # Check if the ball is near the paddle in the horizontal direction (x-axis)
+        if np.abs(x_obj - self.x) < self.tol * 10:  
+            # Check if the ball is within the vertical range of the paddle
+            if self.y_min <= y_obj <= self.y_max:
+                return True
         return False
     
     # def reset_paddle_pos():

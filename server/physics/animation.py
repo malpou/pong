@@ -5,8 +5,8 @@ import time
 from matplotlib.animation import FuncAnimation
 
 def move_ball(game_board, ball, paddle_left, paddle_right, dt):
-    x, y, ball.angle = calc_pos(ball, dt)    
-    
+    x, y = calc_pos(ball, dt)    
+
     # inside of the board
     if game_board.is_in_boudaries(x, y):
         return x, y, ball.angle
@@ -16,12 +16,16 @@ def move_ball(game_board, ball, paddle_left, paddle_right, dt):
         paddle_left.is_on_paddle(x, y) or 
         paddle_right.is_on_paddle(x, y)
         ):
-        ball.angle = ball.angle + 3 * np.pi / 4
-        return calc_pos(ball, dt) 
+        ball.angle += 3 * np.pi / 4
+        x, y = calc_pos(ball, dt)
+        return x, y, ball.angle
     
     elif (game_board.is_on_horizontal_wall(x,y)):
-        ball.angle = 2 * np.pi - ball.angle
-        return calc_pos(ball, dt)
+        print(f"Collision with horizontal wall. Angle before flip: {ball.angle}")
+        ball.angle = -ball.angle
+        print(f"Angle after flip: {ball.angle}")
+        x, y = calc_pos(ball, dt)
+        return x, y, ball.angle
     
     # the ball is not caught by the opponent
     else:
@@ -41,7 +45,17 @@ def calc_pos(ball, dt):
     x = ball.x + v_x * dt
     y = ball.y + v_y * dt
 
-    return x, y, ball.angle
+    return x, y
+
+def normalize_angle(angle):
+    # Normalize the angle to the range [0, 2π]
+    angle = angle % (2 * np.pi)
+    
+    # Adjust the angle to the range [-π, π]
+    if angle > np.pi:
+        angle -= 2 * np.pi
+    
+    return angle
 
 def show_animation(game_board, ball, paddle_left, paddle_right, dt):
     fig, ax = plt.subplots()

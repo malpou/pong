@@ -27,7 +27,7 @@ jobs:
           
       - name: Start server container
         run: |
-          docker run -d --name pong-server -p 8000:8000 pong-server
+          docker run -d --name pong-server -p 8000:80 pong-server
           # Wait for server to be ready
           timeout 30 bash -c 'while ! curl -s http://localhost:8000/health; do sleep 1; done'
           

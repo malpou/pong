@@ -127,10 +127,16 @@ class TestResults:
     def __init__(self):
         self.completed_games = 0
         self.failed_games = 0
+        self.timed_out_games = 0
         self.errors: Dict[str, str] = {}
 
-    def add_result(self, room_id: str, success: bool, error: Optional[str] = None):
-        if success:
+    def add_result(self, room_id: str, success: bool, error: Optional[str] = None, timed_out: bool = False):
+        if timed_out:
+            self.timed_out_games += 1
+            self.failed_games += 1
+            if error:
+                self.errors[room_id] = error
+        elif success:
             self.completed_games += 1
         else:
             self.failed_games += 1
@@ -147,24 +153,32 @@ async def run_game(room_id: str, results: TestResults):
         await client1.connect()
         await client2.connect()
 
-        # Run both game loops concurrently
-        client1_result, client2_result = await asyncio.gather(
-            client1.game_loop(),
-            client2.game_loop(),
-            return_exceptions=True
-        )
+        # Run both game loops concurrently with a timeout
+        try:
+            client1_result, client2_result = await asyncio.wait_for(
+                asyncio.gather(
+                    client1.game_loop(),
+                    client2.game_loop(),
+                    return_exceptions=True
+                ),
+                timeout=120  # 2 minutes timeout
+            )
 
-        # Check for exceptions
-        for result in [client1_result, client2_result]:
-            if isinstance(result, Exception):
-                results.add_result(room_id, False, str(result))
-                return
+            # Check for exceptions
+            for result in [client1_result, client2_result]:
+                if isinstance(result, Exception):
+                    results.add_result(room_id, False, str(result))
+                    return
 
-        # Check if both clients completed successfully
-        if client1_result and client2_result:
-            results.add_result(room_id, True)
-        else:
-            results.add_result(room_id, False, "Game did not complete properly")
+            # Check if both clients completed successfully
+            if client1_result and client2_result:
+                results.add_result(room_id, True)
+            else:
+                results.add_result(room_id, False, "Game did not complete properly")
+
+        except asyncio.TimeoutError:
+            results.add_result(room_id, False, "Game timed out after 2 minutes", timed_out=True)
+            print(f"Room {room_id} timed out after 2 minutes")
 
     except (websockets.exceptions.WebSocketException, asyncio.exceptions.TimeoutError) as conn_err:
         results.add_result(room_id, False, f"Connection error: {str(conn_err)}")
@@ -187,6 +201,7 @@ async def main():
     print(f"Duration: {end_time - start_time:.2f} seconds")
     print(f"Completed Games: {results.completed_games}")
     print(f"Failed Games: {results.failed_games}")
+    print(f"Timed Out Games: {results.timed_out_games}")
 
     if results.errors:
         print("\nErrors encountered:")

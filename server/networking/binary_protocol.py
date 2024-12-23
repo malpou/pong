@@ -1,6 +1,10 @@
+import uuid
 from struct import pack, unpack
 from enum import IntEnum
 from typing import Optional
+
+from domain.game import Game
+
 
 class CommandType(IntEnum):
     PADDLE_UP = 1
@@ -9,6 +13,40 @@ class CommandType(IntEnum):
 class MessageType(IntEnum):
     GAME_STATE = 1
     GAME_STATUS = 2
+
+class GameUpdateType(IntEnum):
+    NEW_GAME = 1
+    SCORE_UPDATE = 2
+    GAME_OVER = 3
+    PLAYER_JOINED = 4
+
+def encode_game_update(update_type: GameUpdateType, game_id: uuid.UUID,
+                       state: Game.State, player_count: int,
+                       left_score: int = 0, right_score: int = 0,
+                       winner: str | None = None) -> bytes:
+    """Encode game updates into binary format."""
+    state_value = {
+        Game.State.WAITING: 0,
+        Game.State.PLAYING: 1,
+        Game.State.PAUSED: 2,
+        Game.State.GAME_OVER: 3
+    }[state]
+
+    winner_code = 0
+    if winner == "left":
+        winner_code = 1
+    elif winner == "right":
+        winner_code = 2
+
+    return pack('!B16sBBBBB',
+                       update_type.value,
+                       game_id.bytes,
+                       state_value,
+                       player_count,
+                       left_score,
+                       right_score,
+                       winner_code)
+
 
 def decode_command(data: bytes) -> CommandType:
     """Decode binary data into a command."""

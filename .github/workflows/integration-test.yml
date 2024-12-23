@@ -20,19 +20,14 @@ jobs:
       - name: Install websockets
         run: pip install websockets
           
-      - name: Generate UUID for Docker tag
-        id: uuid
-        run: echo "UUID=$(uuidgen)" >> $GITHUB_ENV
-        
-      - name: Build and push Docker image
+      - name: Build Docker image
         run: |
           cd server
-          docker build -t ttl.sh/${{ env.UUID }}:1h .
-          docker push ttl.sh/${{ env.UUID }}:1h
+          docker build -t pong-server .
           
       - name: Start server container
         run: |
-          docker run -d --name pong-server -p 8000:8000 ttl.sh/${{ env.UUID }}:2h
+          docker run -d --name pong-server -p 8000:8000 pong-server
           # Wait for server to be ready
           timeout 30 bash -c 'while ! curl -s http://localhost:8000/health; do sleep 1; done'
           

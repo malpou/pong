@@ -34,18 +34,20 @@ class GameBoard:
     
 class Ball:
 
-    def __init__(self, x_max, y_max, speed):
+    def __init__(self, x_max, y_max, speed, angle):
         self.x_max = x_max
         self.y_max = y_max
         self.x = x_max / 2
         self.y = y_max / 2
-        self.vx = speed
-        self.vy = 0
-        self.angle = np.arctan2(self.vy, self.vx)
+        self.speed = speed
+        self.angle = angle
 
-
-    def reset_ball_pos(self):
-        self.__init__(self.x_max, self.y_max, -self.vx )
+    def reset_ball_pos(self, winner):
+        if winner == "left":     
+            self.angle = np.pi
+        else:
+            self.angle = 0
+        self.__init__(self.x_max, self.y_max, self.speed, self.angle)
 
 class Paddle:
 

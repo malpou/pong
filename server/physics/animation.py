@@ -5,34 +5,43 @@ import time
 from matplotlib.animation import FuncAnimation
 
 def move_ball(game_board, ball, paddle_left, paddle_right, dt):
-    x = ball.x + ball.vx * dt
-    y = ball.y + ball.vy * dt
+    x, y, ball.angle = calc_pos(ball, dt)    
     
     # inside of the board
-    if game_board.is_in_boudaries(ball.x, ball.y):
-        return x, y
-    # reaches the left paddle
-    elif (paddle_left.is_on_paddle(x, y)):
-        ball.vx = -ball.vx
-        x = ball.x + ball.vx * dt
-        y = ball.y + ball.vy * dt
-        return x, y
-    elif (paddle_right.is_on_paddle(x, y)):
-        ball.vx = -ball.vx
-        x = ball.x + ball.vx * dt
-        y = ball.y + ball.vy * dt
-        return x, y
+    if game_board.is_in_boudaries(x, y):
+        return x, y, ball.angle
+    
+    # reaches the paddles
+    elif (
+        paddle_left.is_on_paddle(x, y) or 
+        paddle_right.is_on_paddle(x, y)
+        ):
+        ball.angle = ball.angle + 3 * np.pi / 4
+        return calc_pos(ball, dt) 
+    
     elif (game_board.is_on_horizontal_wall(x,y)):
-        ball.vx = -ball.vx
-        x = ball.x + ball.vx * dt
-        y = ball.y + ball.vy * dt
-        return x, y
+        ball.angle = 2 * np.pi - ball.angle
+        return calc_pos(ball, dt)
+    
     # the ball is not caught by the opponent
     else:
-         ball.reset_ball_pos()
-         time.sleep(1.5)
-         return ball.x, ball.y
+        if ball.x > 0.5:
+            winner = "left"
+        else:
+            winner = "right"
 
+        ball.reset_ball_pos(winner)
+        time.sleep(1.5)
+        return ball.x, ball.y, ball.angle
+
+def calc_pos(ball, dt):
+    v_x = ball.speed * np.cos(ball.angle)
+    v_y = ball.speed * np.sin(ball.angle)
+
+    x = ball.x + v_x * dt
+    y = ball.y + v_y * dt
+
+    return x, y, ball.angle
 
 def show_animation(game_board, ball, paddle_left, paddle_right, dt):
     fig, ax = plt.subplots()
@@ -62,7 +71,7 @@ def show_animation(game_board, ball, paddle_left, paddle_right, dt):
     # Update function for the animation
     def update(frame):
         # Generate random coordinates for the ball within the rectangle
-        ball.x, ball.y = move_ball(game_board, ball, paddle_left, paddle_right, dt)
+        ball.x, ball.y, ball.angle = move_ball(game_board, ball, paddle_left, paddle_right, dt)
         
         # Update the ball position
         ball_scatter.set_data([ball.x], [ball.y])

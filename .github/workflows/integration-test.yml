@@ -1,64 +1,42 @@
 name: Server Integration Test
 on:
-  pull_request:
-    paths:
-      - 'server/**'
+ pull_request:
+   paths:
+     - 'server/**'
 jobs:
-  integration-test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: pong
-          POSTGRES_PASSWORD: pong
-          POSTGRES_DB: pong
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-          
-      - name: Install websockets
-        run: pip install websockets
-        
-      - name: Build Docker image
-        run: |
-          cd server
-          docker build -t pong-server .
-          
-      - name: Start server container
-        env:
-          DATABASE_URL: postgresql://pong:pong@localhost:5432/pong
-        run: |
-          docker run -d --name pong-server \
-            --network host \
-            -e DATABASE_URL=$DATABASE_URL \
-            pong-server
-          # Wait for server to be ready
-          timeout 30 bash -c 'while ! curl -s http://localhost:8000/health; do sleep 1; done'
-          
-      - name: Run integration tests
-        run: |
-          cd server/tests
-          python integration.py
-          if [ $? -ne 0 ]; then
-            echo "Integration tests failed"
-            exit 1
-          fi
-          
-      - name: Cleanup
-        if: always()
-        run: |
-          docker stop pong-server || true
-          docker rm pong-server || true
+ integration-test:
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v4
+     
+     - name: Set up Python
+       uses: actions/setup-python@v5
+       with:
+         python-version: '3.13'
+         
+     - name: Install websockets
+       run: pip install websockets
+       
+     - name: Run docker compose
+       run: |
+         cd server
+         docker compose up -d
+         
+     - name: Wait for services
+       run: |
+         timeout 30 bash -c 'while ! curl -s http://localhost:8000/health; do sleep 1; done'
+         
+     - name: Run integration tests  
+       run: |
+         cd server/tests
+         python integration.py
+         if [ $? -ne 0 ]; then
+           echo "Integration tests failed"
+           exit 1
+         fi
+         
+     - name: Cleanup
+       if: always()  
+       run: |
+         cd server
+         docker compose down -v

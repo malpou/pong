@@ -1,11 +1,19 @@
 from dataclasses import dataclass
 from dataclasses import field
+from enum import Enum
+
 from domain.ball import Ball
 from domain.paddle import Paddle
 from logger import logger
 
 @dataclass
-class GameState:
+class Game:
+    class State(Enum):
+        WAITING = "waiting"
+        PLAYING = "playing"
+        PAUSED = "paused"
+        GAME_OVER = "game_over"
+
     POINTS_TO_WIN = 5  # Configurable win condition
     LEFT_PADDLE_X = 0.1  # X position for left paddle collision
     RIGHT_PADDLE_X = 0.9  # X position for right paddle collision
@@ -19,9 +27,11 @@ class GameState:
     right_score: int = 0
     winner: str | None = None
     room_id: str | None = None
+    state: State = field(default=State.WAITING)
+    player_count: int = 0
 
     def update(self) -> None:
-        if self.winner:  # Don't update if game is over
+        if self.winner or self.state != self.State.PLAYING or self.player_count < 2:
             return
 
         self.ball.update_position()
@@ -49,10 +59,21 @@ class GameState:
             self.ball.x = self.RIGHT_PADDLE_X
             self.ball.dx *= -1
 
+
+    def add_player(self) -> None:
+        self.player_count += 1
+        if self.player_count == 2:
+            self.state = self.State.PLAYING
+
+    def remove_player(self) -> None:
+        self.player_count -= 1
+        if self.player_count < 2 and self.state == self.State.PLAYING:
+            self.state = self.State.PAUSED
+
     def _check_winner(self) -> None:
         if self.left_score >= self.POINTS_TO_WIN:
             self.winner = "left"
-            logger.info(f"Room {self.room_id}: Game won by LEFT player with score {self.left_score}-{self.right_score}")
+            self.state = self.State.GAME_OVER
         elif self.right_score >= self.POINTS_TO_WIN:
             self.winner = "right"
-            logger.info(f"Room {self.room_id}: Game won by RIGHT player with score {self.left_score}-{self.right_score}")
+            self.state = self.State.GAME_OVER

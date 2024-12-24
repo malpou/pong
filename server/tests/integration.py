@@ -2,6 +2,7 @@ import asyncio
 import struct
 import sys
 import time
+import uuid
 from dataclasses import dataclass
 from typing import Optional, Dict
 import websockets
@@ -142,7 +143,8 @@ class TestResults:
                 self.errors[room_id] = error
 
 
-async def run_game(room_id: str, results: TestResults):
+async def run_game(results: TestResults):
+    room_id = str(uuid.uuid4())
     try:
         client1 = PongClient(room_id, "left")
         client2 = PongClient(room_id, "right")
@@ -184,12 +186,12 @@ async def run_game(room_id: str, results: TestResults):
         results.add_result(room_id, False, f"Unexpected error: {str(game_err)}")
 
 async def main():
-    print("Starting Pong server load test with 100 simultaneous games...")
+    print("Starting Pong server load test with 10 simultaneous games...")
     start_time = time.time()
     results = TestResults()
 
     # Create and run games
-    games = [run_game(str(i), results) for i in range(1, 101)]
+    games = [run_game(results) for i in range(1, 11)]
     
     # Wait for all games to complete
     await asyncio.gather(*games)

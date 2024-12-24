@@ -21,17 +21,23 @@ class GameLoop:
         """Run the game loop until shutdown event is set."""
         while not self.shutdown_event.is_set():
             try:
+                update_tasks = []
                 for room in list(game_room_manager.rooms.values()):
                     if room.players:
-                        try:
-                            room.game_state.update()
-                            if not self.shutdown_event.is_set():
-                                await room.broadcast_state()
-                        except RuntimeError:
-                            continue
+                        update_tasks.append(self.update_room(room))
+                if update_tasks:
+                    await asyncio.gather(*update_tasks)
             except Exception as e:
                 logger.error(f"Error in game loop: {e}")
             await asyncio.sleep(1 / 60)  # 60 FPS
+
+    async def update_room(self, room):
+        try:
+            room.game_state.update()
+            if not self.shutdown_event.is_set():
+                await room.broadcast_state()
+        except Exception:
+            pass
 
     async def shutdown(self):
         """Gracefully shutdown the game loop."""

@@ -250,12 +250,11 @@ class GameRoom:
 class GameRoomManager:
     def __init__(self):
         self.rooms: Dict[str, GameRoom] = {}
-        self.db = SessionLocal()
 
     def create_room(self, game_id: str) -> GameRoom:
         if game_id not in self.rooms:
-            logger.info(f"Creating new room: {game_id}")
-            room = GameRoom(game_id, self.db)
+            db = SessionLocal()
+            room = GameRoom(game_id, db)
             self.rooms[game_id] = room
         return self.rooms[game_id]
 
@@ -266,7 +265,7 @@ class GameRoomManager:
         if game_id in self.rooms:
             room = self.rooms[game_id]
             room.cancel_save_task()
-            logger.info(f"Removing room: {game_id}")
+            room.db.close()
             del self.rooms[game_id]
 
 game_room_manager = GameRoomManager()

@@ -10,10 +10,11 @@ VALID_COMMANDS = {0x01, 0x02}  # Only paddle up/down commands are valid
 
 async def handle_game_connection(websocket: WebSocket, room_id: str, room_manager):
     """Handle WebSocket connection for a game room."""
-    room = room_manager.create_room(room_id)
+    room = None
     player_role = None
 
     try:
+        room = room_manager.create_room(room_id)
         # Set up connection timeout
         async with asyncio.timeout(CONNECTION_TIMEOUT):
             player_role = await room.connect(websocket)
@@ -68,9 +69,10 @@ async def handle_game_connection(websocket: WebSocket, room_id: str, room_manage
         logger.info(f"WebSocket disconnected for room {room_id}")
     except Exception as e:
         logger.error(f"Error in websocket connection: {e}")
-        await websocket.close(code=1011, reason="Internal server error")
+        if websocket.client_state.CONNECTED:
+            await websocket.close(code=1011, reason="Internal server error")
     finally:
         if player_role:  # Only disconnect if the player was successfully connected
             room.disconnect(websocket)
-        if not room.players:
+        if room and not room.players:
             room_manager.remove_room(room_id)

@@ -10,11 +10,10 @@ VALID_COMMANDS = {0x01, 0x02}  # Only paddle up/down commands are valid
 
 async def handle_game_connection(websocket: WebSocket, room_id: str, room_manager):
     """Handle WebSocket connection for a game room."""
-    room = room_manager.create_room(room_id)
+    room = await room_manager.create_room(room_id)  # Add await here
     player_role = None
 
     try:
-        # Set up connection timeout
         async with asyncio.timeout(CONNECTION_TIMEOUT):
             player_role = await room.connect(websocket)
 
@@ -22,17 +21,17 @@ async def handle_game_connection(websocket: WebSocket, room_id: str, room_manage
             await websocket.close(code=1000, reason="Room is full")
             return
 
+        # Check game state using room.game_state instead of room.state
         while True:
             try:
-                # Set up message timeout
                 async with asyncio.timeout(CONNECTION_TIMEOUT):
                     message = await websocket.receive()
 
                 if message["type"] == "websocket.disconnect":
                     break
 
-                if room.state != Game.State.PLAYING:
-                    continue  # Ignore gameplay messages if not in PLAYING state
+                if room.game_state.state != Game.State.PLAYING:
+                    continue
 
                 if message["type"] == "websocket.receive":
                     if "bytes" in message and message["bytes"]:

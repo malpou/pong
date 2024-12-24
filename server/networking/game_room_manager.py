@@ -252,7 +252,7 @@ class GameRoomManager:
         self.rooms: Dict[str, GameRoom] = {}
         self.db = SessionLocal()
 
-    def create_room(self, game_id: str) -> GameRoom:
+    async def create_room(self, game_id: str) -> GameRoom:  # Make method async
         if game_id not in self.rooms:
             logger.info(f"Creating new room: {game_id}")
             room = GameRoom(game_id, self.db)

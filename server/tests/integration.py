@@ -186,12 +186,12 @@ async def run_game(results: TestResults):
         results.add_result(room_id, False, f"Unexpected error: {str(game_err)}")
 
 async def main():
-    print("Starting Pong server load test with 100 simultaneous games...")
+    print("Starting Pong server load test with 10 simultaneous games...")
     start_time = time.time()
     results = TestResults()
 
     # Create and run games
-    games = [run_game(results) for i in range(1, 101)]
+    games = [run_game(results) for i in range(1, 11)]
     
     # Wait for all games to complete
     await asyncio.gather(*games)

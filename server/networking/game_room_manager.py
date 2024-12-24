@@ -250,13 +250,15 @@ class GameRoom:
 class GameRoomManager:
     def __init__(self):
         self.rooms: Dict[str, GameRoom] = {}
+        self.connection_semaphore = asyncio.Semaphore(20)
 
-    def create_room(self, game_id: str) -> GameRoom:
-        if game_id not in self.rooms:
-            db = SessionLocal()
-            room = GameRoom(game_id, db)
-            self.rooms[game_id] = room
-        return self.rooms[game_id]
+    async def create_room(self, game_id: str) -> GameRoom:
+        async with self.connection_semaphore:
+            if game_id not in self.rooms:
+                db = SessionLocal()
+                room = GameRoom(game_id, db)
+                self.rooms[game_id] = room
+            return self.rooms[game_id]
 
     def get_room(self, game_id: str) -> Optional[GameRoom]:
         return self.rooms.get(game_id)

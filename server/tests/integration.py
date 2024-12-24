@@ -30,14 +30,15 @@ class PongClient:
 
     async def connect(self):
         uri = f"ws://localhost:8000/game/{self.room_id}"
-        try:
-            self.ws = await websockets.connect(uri)
-        except websockets.exceptions.WebSocketException as ws_err:
-            print(f"WebSocket error connecting to room {self.room_id} as {self.player}: {str(ws_err)}")
-            raise
-        except Exception as conn_err:
-            print(f"Unexpected error connecting to room {self.room_id} as {self.player}: {str(conn_err)}")
-            raise
+        retries = 3
+        for attempt in range(retries):
+            try:
+                self.ws = await websockets.connect(uri, timeout=30)
+                return
+            except Exception as err:
+                if attempt == retries - 1:
+                    raise
+                await asyncio.sleep(1)
 
     @staticmethod
     def parse_game_state(data: bytes) -> GameState:
@@ -190,12 +191,12 @@ async def main():
     start_time = time.time()
     results = TestResults()
 
-    # Create and run games
-    games = [run_game(results) for i in range(1, 101)]
-    
-    # Wait for all games to complete
-    await asyncio.gather(*games)
-    
+    # Run games in batches of 10
+    for batch in range(0, 100, 10):
+        games = [run_game(results) for _ in range(10)]
+        await asyncio.gather(*games)
+        await asyncio.sleep(0.5)
+
     # Print results
     end_time = time.time()
     print(f"\nTest Results:")
